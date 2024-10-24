@@ -86,8 +86,22 @@ init: ## Initialize project (first time setup)
 	@echo "${YELLOW}Initializing project...${RESET}"
 	@make up
 	@make composer-install
+	@make generate-jwt
 	@make symfony-cache-clear
 	@echo "${GREEN}Project initialized successfully!${RESET}"
+
+generate-jwt: ## Generate JWT keys
+	@echo "${YELLOW}Generating JWT keys...${RESET}"
+	@if [ ! -d backend/config/jwt ]; then \
+		mkdir -p backend/config/jwt; \
+	fi
+	@if [ ! -f backend/config/jwt/private.pem ]; then \
+		$(DC) exec ams_backend openssl genpkey -out config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096 -pass pass:$(JWT_PASSPHRASE); \
+	fi
+	@if [ ! -f backend/config/jwt/public.pem ]; then \
+		$(DC) exec ams_backend openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout -passin pass:$(JWT_PASSPHRASE); \
+	fi
+	@echo "${GREEN}JWT keys generated successfully!${RESET}"
 
 restart: down up ## Restart all containers
 
@@ -102,10 +116,6 @@ test: ## Run all tests
 test-unit: ## Run unit tests only
 	@echo "${YELLOW}Running unit tests...${RESET}"
 	$(DC) exec ams_backend php bin/phpunit --testsuite=Unit
-
-test-integration: ## Run integration tests only
-	@echo "${YELLOW}Running integration tests...${RESET}"
-	$(DC) exec ams_backend php bin/phpunit --testsuite=Integration
 
 test-functional: ## Run functional tests only
 	@echo "${YELLOW}Running functional tests...${RESET}"
