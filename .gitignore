@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+vendor
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build files
+.next
+build
+var
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea
+.vscode
+
+# MongoDB
+mongodb_data

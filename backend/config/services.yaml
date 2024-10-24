@@ -1,0 +1,56 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+parameters:
+    env(MONGODB_URL): ''
+    env(MONGODB_DB): ''
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    # Base service configuration
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Document/'
+            - '../src/Kernel.php'
+            - '../src/Tests/'
+            - '../src/DTO/'
+
+    # Serializer Configuration
+    serializer.normalizer.datetime:
+        class: Symfony\Component\Serializer\Normalizer\DateTimeNormalizer
+        tags: ['serializer.normalizer']
+
+    serializer.normalizer.object:
+        class: Symfony\Component\Serializer\Normalizer\ObjectNormalizer
+        tags: ['serializer.normalizer']
+
+    # Custom Services
+    App\Serializer\JsonSerializer:
+        arguments:
+            $serializer: '@serializer'
+
+    App\Service\ResponseHandler:
+        arguments:
+            $serializer: '@App\Serializer\JsonSerializer'
+
+    # Validators
+    App\Validator\:
+        resource: '../src/Validator'
+        tags: ['app.validator']
+
+    App\Validator\AuthValidator:
+        arguments:
+            $validator: '@validator'
+            $userRepository: '@App\Repository\UserRepository'
+
+    # Repositories (MongoDB)
+    App\Repository\:
+        resource: '../src/Repository'
+        tags: ['doctrine_mongodb.odm.repository_service']
