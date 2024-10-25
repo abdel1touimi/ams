@@ -1,17 +1,26 @@
 # Article Management System
 
-A RESTful API built with Symfony 6.4 and MongoDB for managing articles and user authentication.
-
-(missing frontend integration)
+A full-stack application built with Symfony 6.4 backend (MongoDB) and Next.js frontend for managing articles with user authentication.
 
 ## Features
 
-- User authentication with JWT
+### Backend
+- RESTful API built with Symfony 6.4
+- MongoDB integration for data storage
+- JWT authentication
 - Article management (CRUD operations)
-- MongoDB integration
 - Comprehensive validation
 - Test coverage with PHPUnit
 - Docker-based development environment
+
+### Frontend
+- Modern UI built with Next.js
+- TypeScript support
+- Tailwind CSS for styling
+- Responsive design
+- JWT-based authentication
+- Real-time form validation
+- Article management interface
 
 ## Prerequisites
 
@@ -29,11 +38,11 @@ cd ams
 2. Copy the environment files:
 ```bash
 cp .env.template .env
+cp backend/.env.template backend/.env
 ```
 
 3. Update the environment variables in `.env`:
-- Set `JWT_PASSPHRASE` to a secure random string
-- Adapt the values as needed
+- Adjust values as needed (keys, ports, database credentials, etc.)
 
 4. Initialize the project using Make:
 ```bash
@@ -45,30 +54,50 @@ This command will:
 - Install Composer dependencies
 - Generate JWT keys
 - Clear Symfony cache
-
+- Install frontend dependencies
+- Build frontend assets (in production mode)
 
 ## Project Structure
 
 ```
-backend/
-├── src/
-│   ├── Controller/         # API endpoints
-│   ├── Document/          # MongoDB document classes
-│   ├── DTO/               # Data Transfer Objects
-│   ├── Exception/         # Custom exceptions
-│   ├── Repository/        # Data access layer
-│   ├── Response/          # API response formatting
-│   ├── Serializer/        # Data serialization
-│   ├── Service/           # Business logic
-│   └── Validator/         # Input validation
-├── tests/
-│   ├── Unit/             # Unit tests
-│   └── Functional/       # Functional tests
-.
-.
-.
-docker-compose.yml and other files/floders to run the project
+├── backend/                # Symfony backend application
+│   ├── src/
+│   │   ├── Controller/    # API endpoints
+│   │   ├── Document/      # MongoDB document classes
+│   │   ├── DTO/           # Data Transfer Objects
+│   │   ├── Exception/     # Custom exceptions
+│   │   ├── Repository/    # Data access layer
+│   │   ├── Response/      # API response formatting
+│   │   ├── Serializer/    # Data serialization
+│   │   ├── Service/       # Business logic
+│   │   └── Validator/     # Input validation
+│   └── tests/
+│       ├── Unit/          # Unit tests
+│       └── Functional/    # Functional tests
+│
+├── frontend/              # Next.js frontend application
+│   └── src
+│       ├── app/           # Main application layout
+│       ├── components/    # Reusable components
+│       ├── context/       # Context providers
+│       ├── services/      # API services
+│       ├── types/         # TypeScript types
+│       └── utils/         # Utility functions
+│
+├── configs/              # Configuration files
+│   ├── nginx/           # Nginx configuration
+│   ├── php/             # PHP configuration
+│   └── node/            # Node.js configuration
+│
+├── docker-compose.yml    # Docker composition
+└── Makefile              # Make commands
 ```
+
+## Accessing the Application
+
+After running `make up`, you can access:
+- Frontend: `http://localhost`
+- Backend API: `http://localhost/api`
 
 ## API Endpoints
 
@@ -82,6 +111,7 @@ docker-compose.yml and other files/floders to run the project
 ### Articles
 - `GET /api/articles` - List user's articles
 - `POST /api/articles` - Create new article
+- `GET /api/articles/{id}` - Get article details
 - `PUT /api/articles/{id}` - Update article
 - `DELETE /api/articles/{id}` - Delete article
 
@@ -91,31 +121,58 @@ docker-compose.yml and other files/floders to run the project
 
 ```bash
 # Start development environment
-make dev
+make up
+
+# Stop environment
+make down
 
 # View logs
 make logs
 
-# Access Symfony container
-make symfony-bash
+# Backend Commands
+make symfony-bash         # Access Symfony container
+make composer-install     # Install PHP dependencies
+make symfony-cache-clear  # Clear Symfony cache
 
-# Access MongoDB shell
-make mongo-shell
+# Frontend Commands
+make frontend-dev        # Start frontend development server
+make frontend-build      # Build frontend for production
+make frontend-lint       # Run frontend linting
+make frontend-lint-fix   # Fix frontend linting issues
 
-# Run tests
-make test
-make test-unit
-make test-functional
-make test-coverage
+# Database Commands
+make mongo-shell        # Access MongoDB shell
 
-# Stop containers
-make down
+# Testing Commands
+make test              # Run all tests
+make test-unit         # Run unit tests
+make test-functional   # Run functional tests
+make test-coverage     # Generate test coverage report
 
-# Clean up everything
-make clean
+# Utility Commands
+make clean            # Clean up everything
+make restart          # Restart all containers
+make validate         # Validate project configuration
 ```
 
-### Running Tests
+### Development Workflow
+
+1. Start the development environment:
+```bash
+make up
+```
+
+2. For frontend development with hot reloading:
+```bash
+make frontend-dev
+```
+
+3. For backend development, you can access the Symfony container:
+```bash
+make symfony-bash
+```
+
+### Testing
 
 The project includes comprehensive test coverage:
 
@@ -131,8 +188,21 @@ make test-functional
 make test-coverage
 ```
 
-### Database Configuration
+## Configuration
 
+### Backend Configuration
+- Main configuration: `backend/.env`
+- Test configuration: `backend/.env.test`
+- PHP configuration: `configs/php/php.ini`
+- Nginx configuration: `configs/nginx/default.conf`
+
+### Frontend Configuration
+- Environment variables: `.env`
+- Next.js configuration: `frontend/next.config.js`
+- TypeScript configuration: `frontend/tsconfig.json`
+- Nginx configuration: `configs/nginx/default.conf`
+
+### Database Configuration
 MongoDB connection settings can be configured in:
 - `.env` for development
 - `backend/.env` for the Symfony environment
@@ -140,10 +210,11 @@ MongoDB connection settings can be configured in:
 
 ## Security
 
-- JWT authentication is implemented using `lexik/jwt-authentication-bundle`
-- Password hashing uses Symfony's password hasher
-- CORS is configured using `nelmio/cors-bundle`
-- Input validation is implemented for all endpoints
+- JWT authentication using `lexik/jwt-authentication-bundle`
+- Password hashing using Symfony's password hasher
+- CORS configuration using `nelmio/cors-bundle`
+- Input validation on both frontend and backend
+- Secure HTTP headers with Nginx configuration
 
 ## Error Handling
 
@@ -166,4 +237,3 @@ Common HTTP status codes:
 - 401: Unauthorized
 - 422: Validation error
 - 404: Resource not found
-
