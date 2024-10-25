@@ -34,10 +34,11 @@ down: ## Stop all containers
 	$(DC) down
 	@echo "${GREEN}All containers stopped!${RESET}"
 
-# Stop and remove all containers, volumes, and networks
 clean: ## Stop and remove all containers, volumes, and networks
 	@echo "${YELLOW}Cleaning up everything...${RESET}"
-	$(DC) down -v --remove-orphans
+	@$(DC) down -v --remove-orphans
+	@echo "${YELLOW}Cleaning frontend build files...${RESET}"
+	@rm -rf frontend/.next frontend/node_modules frontend/next.config.ts
 	@echo "${GREEN}Clean up complete!${RESET}"
 
 # Show container logs
@@ -70,16 +71,48 @@ mongo-shell: ## Access MongoDB shell
 ps: ## Show container status
 	$(DC) ps
 
-# Development shortcuts
-dev: up ## Start development environment
-	@echo "${GREEN}Development environment is ready!${RESET}"
-	@echo "Backend URL: http://localhost:80"
-	@echo "MongoDB port: 27017"
+# Frontend specific commands
+frontend-dev-build: ## Build frontend in development mode
+	@echo "${YELLOW}Building frontend in development mode...${RESET}"
+	@$(DC) exec ams_frontend sh -c "pnpm tsc --noEmit && pnpm build"
 
-# Testing commands
-test-backend: ## Run backend tests
-	@echo "${YELLOW}Running backend tests...${RESET}"
-	$(DC) exec ams_backend php bin/phpunit
+# Frontend development commands
+frontend-dev: ## Start frontend development server
+	$(DC) exec ams_frontend pnpm dev
+
+frontend-clean: ## Clean frontend build files
+	@echo "${YELLOW}Cleaning frontend build files...${RESET}"
+	@$(DC) exec ams_frontend sh -c "rm -rf .next"
+
+frontend-build: ## Build frontend for production
+	$(DC) exec ams_frontend pnpm build
+
+frontend-lint: ## Run frontend linting
+	$(DC) exec ams_frontend pnpm lint
+
+frontend-lint-fix: ## Fix frontend linting issues
+	$(DC) exec ams_frontend pnpm lint --fix
+
+# Clean frontend configuration
+clean-frontend-config: ## Clean frontend configuration files
+	@echo "${YELLOW}Cleaning frontend configuration...${RESET}"
+	@rm -f frontend/next.config.ts
+	@echo "${GREEN}Frontend configuration cleaned!${RESET}"
+
+# init-frontend target
+init-frontend: clean-frontend-config ## Initialize frontend dependencies and configuration
+	@echo "${YELLOW}Setting up frontend configuration...${RESET}"
+	@echo "/** @type {import('next').NextConfig} */\nconst nextConfig = {\n  reactStrictMode: true,\n  output: 'standalone',\n  images: {\n    unoptimized: true\n  }\n};\n\nmodule.exports = nextConfig;" > frontend/next.config.js
+	@if [ ! -f frontend/.eslintrc.json ]; then \
+		cp frontend/.eslintrc.json.template frontend/.eslintrc.json; \
+	fi
+	@echo "${YELLOW}Installing frontend dependencies...${RESET}"
+	@$(DC) exec ams_frontend pnpm install
+	@if [ "${NODE_ENV}" = "production" ]; then \
+		echo "${YELLOW}Building frontend for production...${RESET}"; \
+		$(DC) exec ams_frontend pnpm build; \
+	fi
+	@echo "${GREEN}Frontend initialization complete!${RESET}"
 
 # Utility commands
 init: ## Initialize project (first time setup)
@@ -88,6 +121,7 @@ init: ## Initialize project (first time setup)
 	@make composer-install
 	@make generate-jwt
 	@make symfony-cache-clear
+	@make init-frontend
 	@echo "${GREEN}Project initialized successfully!${RESET}"
 
 generate-jwt: ## Generate JWT keys
@@ -111,6 +145,11 @@ logs-%: ## Show logs for a specific container (usage: make logs-backend)
 # Testing commands
 test: ## Run all tests
 	@echo "${YELLOW}Running all tests...${RESET}"
+	@make test-backend
+
+# Testing commands
+test-backend: ## Run backend tests
+	@echo "${YELLOW}Running backend tests...${RESET}"
 	$(DC) exec ams_backend php bin/phpunit
 
 test-unit: ## Run unit tests only
@@ -128,3 +167,15 @@ test-coverage: ## Run tests with coverage report
 test-clear: ## Clear test cache
 	@echo "${YELLOW}Clearing test cache...${RESET}"
 	$(DC) exec ams_backend rm -rf var/cache/test
+
+# Add to the validate target
+validate: ## Validate project configuration
+	@echo "${YELLOW}Validating project configuration...${RESET}"
+	@$(DC) config --quiet
+	@echo "${YELLOW}Checking backend dependencies...${RESET}"
+	@$(DC) exec ams_backend composer validate
+	@echo "${YELLOW}Checking frontend dependencies...${RESET}"
+	@$(DC) exec ams_frontend pnpm audit
+	@echo "${YELLOW}Running frontend linting...${RESET}"
+	@make frontend-lint || true
+	@echo "${GREEN}Configuration validation complete!${RESET}"

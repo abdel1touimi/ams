@@ -1,4 +1,6 @@
 {
+    "name": "ams/backend",
+    "description": "Symfony 6.4 Backend for AMS",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
